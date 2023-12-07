@@ -10,7 +10,7 @@ promptly. Subsequently, it applies a Gaussian blur filter to obscure the detecte
 
 ## Architecture
 
-![ScreenShot][FPG-Architecture.png]
+![ScreenShot](FPG-Architecture.png)
 
 ## How it works
 1. Users participating in online gaming can upload their profile pictures within the gaming application..
