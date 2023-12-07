@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description:
+  Fair Play Guardian (FPG)-Collusion Detection in Multiplayer Online Gaming through Profile Picture Validation.
+
+Parameters:
+  PrimaryBucketName:
+    Type: String
+    Description: Enter the bucket name which will store the original profile pictures
+    Default: myFPGprofile-pictures-primary
+  ProcessingBucketName:
+    Type: String
+    Description: Enter the bucket name which will be used to store the processed images with text temporarily
+    Default: myFPGprofile-pictures-processing  
+  Email:
+    Type: String
+    Description: Email address to subscribe to the SNS topic
+    Default: tonotifyemail@example.com
+
+Resources:
+
+  myFPGS3BucketPrimary:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref PrimaryBucketName
+
+  myFPGS3BucketProcessing:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref ProcessingBucketName    
+
+  myFPGTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: 'myFPGTopic'
+      DisplayName: 'Profile Picture Validation Notification'
+
+  myFPGSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Protocol: email 
+      Endpoint: !Ref Email
+      TopicArn: !Ref myFPGTopic
+ 
+  myFPGvalidateProfilePicture:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: './profile-picture-validation'
+      Handler: 'validateProfilePicture.lambda_handler'
+      FunctionName: 'myFPGvalidateProfilePicture'
+      Description: 'Lambda function triggered by S3 bucket events'
+      Runtime: python3.11
+      Timeout: 30
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref myFPGTopic
+          PRIMARY_BUCKET_NAME: !Ref PrimaryBucketName
+          PROCESSING_BUCKET_NAME: !Ref ProcessingBucketName
+      Policies:
+      - Statement:
+        - Sid: myFPGTextractPolicy
+          Effect: Allow
+          Action:
+          - "textract:AnalyzeExpense"
+          - "textract:DetectDocumentText"
+          - "textract:GetExpenseAnalysis"
+          - "textract:ListAdapterVersions"
+          - "textract:AnalyzeDocument"
+          - "textract:GetLendingAnalysis"
+          - "textract:GetDocumentTextDetection"
+          - "textract:GetDocumentAnalysis"
+          - "textract:AnalyzeID"
+          - "textract:GetLendingAnalysisSummary"
+          - "textract:ListAdapters"
+          Resource: "*"  
+        - Sid: myFPGS3Policy
+          Effect: Allow
+          Action:
+          - "s3:CopyObject"
+          - "s3:DeleteObject"
+          - "s3:PutObject"
+          - "s3:ListBucket"
+          - "s3:ListBucketVersions"
+          - "s3:GetObject"
+          - "s3:ListObjectsV2"
+          Resource: "arn:aws:s3:::*"
+        - Sid: myFPGCloudwatchLogsPolicy
+          Effect: Allow
+          Action:
+          - "logs:*"
+          Resource: "arn:aws:logs:*:*:*"  
+        - Sid: myFPGSNSPolicy
+          Effect: Allow
+          Action:
+          - "sns:ListTagsForResource"
+          - "sns:ListSubscriptionsByTopic"
+          - "sns:Publish"
+          - "sns:GetTopicAttributes"
+          - "sns:GetDataProtectionPolicy"
+          - "sns:ListTopics"
+          Resource: !Ref myFPGTopic    
+      Layers: 
+        - arn:aws:lambda:us-east-1:770693421928:layer:Klayers-p311-Pillow:2
+      Events:
+        S3Event:
+          Type: S3 
+          Properties:
+            Bucket: !Ref myFPGS3BucketPrimary 
+            Events: s3:ObjectCreated:Put
+  myFPGS3LambdaInvokePermission:
+    Type: 'AWS::Lambda::Permission'
+    Properties:
+      FunctionName: !GetAtt myFPGvalidateProfilePicture.Arn
+      Action: 'lambda:InvokeFunction'
+      Principal: 's3.amazonaws.com'
+      SourceAccount: !Sub ${AWS::AccountId}
+      SourceArn: !GetAtt myFPGS3BucketPrimary.Arn          
+                
+
+  
