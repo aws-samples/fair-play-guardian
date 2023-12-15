@@ -158,9 +158,6 @@ def lambda_handler(event, context):
                 
                 # Save the blurred image temporarily in processing bucket. 
                 processedImageOutput = io.BytesIO()
-                # If file format is JPG convert it to JPEG
-                if fileFormat == JPG:
-                    fileFormat = JPEG
                 finalBlurredImage.save(processedImageOutput, format=fileFormat)
                 processedImageOutput.seek(0)
                 s3.upload_fileobj(processedImageOutput, os.environ[PROCESSING_BUCKET_NAME], fileName)
