@@ -50,7 +50,7 @@ Resources:
       FunctionName: 'myFPGvalidateProfilePicture'
       Description: 'Lambda function triggered by S3 bucket events'
       Runtime: python3.11
-      Timeout: 30
+      Timeout: 180
       Environment:
         Variables:
           SNS_TOPIC_ARN: !Ref myFPGTopic
